@@ -1,0 +1,1 @@
+Spring配置hibernate数据源

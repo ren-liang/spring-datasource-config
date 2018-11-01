@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee 
+	http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+	<display-name>spring</display-name>
+	<!-- 应用的ServletContext上下文初始化参数 -->
+	<!-- 配置Spring核心监听器 用于加载<context-param>中配置的配置文件如果没有配置
+		<context-param>则会默认寻找WEB-INF/classes/application.xml-->
+	<context-param>
+		<!-- 参数名称 -->
+		<param-name>contextConfigLocation</param-name>
+		<!-- 参数值 -->
+		<param-value>classpath:ApplicationContext.xml</param-value>
+	</context-param>
+	<!-- 配置Spring核心监听器-->
+	<listener>
+		<listener-class>
+			org.springframework.web.context.ContextLoaderListener
+		</listener-class>
+	</listener>
+	<!-- 使用Spring的filter对字符进行强制编码 -->
+	<filter>
+		<filter-name>encodingFilter</filter-name>
+		<filter-class>
+			org.springframework.web.filter.CharacterEncodingFilter
+		</filter-class>
+		<init-param>
+			<param-name>encoding</param-name>
+			<param-value>utf-8</param-value>
+		</init-param>
+		<init-param>
+			<param-name>forceEncoding</param-name>
+			<param-value>true</param-value>
+		</init-param>
+	</filter>
+	<filter-mapping>
+		<filter-name>encodingFilter</filter-name>
+		<url-pattern>*.jsp</url-pattern>
+	</filter-mapping>
+	
+	<!-- 防止内存溢出 -->
+	<listener>
+		<listener-class>
+			org.springframework.web.util.IntrospectorCleanupListener
+		</listener-class>
+	</listener>
+	<!-- 配置SpringMVC核心Servlet -->
+	<servlet>
+		<servlet-name>springmvc</servlet-name>
+		<servlet-class>
+			org.springframework.web.servlet.DispatcherServlet
+		</servlet-class>
+		<!-- 初始化参数用于指定需要加载的Spring配置文件 -->
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>classpath*:spring-mvc.xml</param-value>
+		</init-param>
+		<!-- 配置tomcat启动时同时启动该servlet -->
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+	<!-- 配置后台管理的Spring MVC核心Servlet映射-->
+	<servlet-mapping>
+		<servlet-name>springmvc</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+	<welcome-file-list>
+		<welcome-file>index.jsp</welcome-file>
+	</welcome-file-list>
+</web-app>

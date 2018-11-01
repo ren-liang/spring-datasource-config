@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans  
+                        http://www.springframework.org/schema/beans/spring-beans.xsd  
+				        http://www.springframework.org/schema/context
+				        http://www.springframework.org/schema/context/spring-context.xsd
+				        http://www.springframework.org/schema/tx
+				        http://www.springframework.org/schema/tx/spring-tx.xsd 
+				        http://www.springframework.org/schema/aop
+				        http://www.springframework.org/schema/aop/spring-aop.xsd
+				        http://www.springframework.org/schema/mvc
+				        http://www.springframework.org/schema/mvc/spring-mvc.xsd">
+	<context:annotation-config />
+	<!-- 自动扫描 -->
+	<context:component-scan base-package="com.dcits.szsqwfw" />
+	<!--  引入属性文件<context:property-placeholder location="jdbc.properties"/>-->
+	<!-- 引入JdbC配置文件 -->
+	<bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="classpath:jdbc.properties" />
+	</bean>
+	
+	<!-- 配置数据源  使用获取WebLogic数据源方式 
+	<bean id="dataSource"
+		class="org.springframework.jndi.JndiObjectFactoryBean">
+		<property name="jndiName" value="dataSource" />
+	</bean>-->
+	
+	<!-- 配置C3P0数据源连接池 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"	
+	destroy-method="close">
+		<property name="driverClass" value="${jdbc.driverClassName}" />
+		<property name="jdbcUrl" value="${jdbc.url}" />
+		<property name="user" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+		<property name="autoCommitOnClose" value="true"/>
+		<property name="checkoutTimeout" value="${cpool.checkoutTimeout}"/>
+		<property name="initialPoolSize" value="${cpool.minPoolSize}"/><!-- 初始化池大小 -->
+		<property name="minPoolSize" value="${cpool.minPoolSize}"/><!-- 最小连接池 -->
+		<property name="maxPoolSize" value="${cpool.maxPoolSize}"/><!-- 最大连接池 -->
+		<property name="maxIdleTime" value="${cpool.maxIdleTime}"/><!-- 最大连接时间 -->
+		<property name="acquireIncrement" value="${cpool.acquireIncrement}"/>
+		<property name="maxIdleTimeExcessConnections" value="${cpool.maxIdleTimeExcessConnections}"/>
+	</bean>
+	
+	<!-- 配置数据源会话工厂Bean -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<description>该demo中的数据源是通过WebLogic获取的数据源，也可以自己配置其他数据源例如C3P0</description>
+		<property name="dataSource" ref="dataSource"/>
+		<!-- 配置映射文件路径 -->	
+		<property name="mappingLocations">
+			<list>
+				<value>classpath*:com/dcits/model/hbm/*.hbm.xml</value>
+			</list>
+		</property>
+		<property name="packagesToScan">
+			<list>
+				<value>com.dcits.model</value>
+			</list>
+		</property>
+		<!-- 配置hibernate参数 -->
+		<property name="hibernateProperties">
+			<props>
+			<!-- MySQL方言 -->
+			<prop key="hibernate.dialect">org.hibernate.dialect.MySQLInnoDBDialect</prop>
+			<!-- 是否打印sql -->
+			<prop key="hibernate.show_sql">true</prop>
+			<!-- 是否格式化sql语句 -->
+			<prop key="hibernate.format_sql">true</prop>
+			<!-- 是否开启二级缓存 -->
+            <prop key="hibernate.cache.use_second_level_cache">false</prop>
+            <!-- 将Hibernate查询中的符号映射到SQL查询中的符号 -->
+			<prop key="hibernate.query.substitutions">true 1, false 0</prop>
+			<!-- 数据库批量更新、添加、删除操作最大数 -->
+			<prop key="hibernate.jdbc.batch_size">20</prop>
+			<!-- 是否开启查询缓存 -->
+			<prop key="hibernate.cache.use_query_cache">false</prop>
+			<!-- 是否自动提交事务 -->
+			<prop key="hibernate.connection.autocommit">auto</prop>
+			<prop key="hibernate.cache.provider_class">net.sf.ehcache.hibernate.EhCacheProvider</prop>
+			</props>
+			
+		</property>
+		<!-- LOB对象处理 
+		<property name="lobHandler">
+			<ref bean="lobHandler" />
+		</property>-->
+	</bean>
+	
+	<!-- 配置LOB对象的处理
+	<bean id="lobHandler" class="org.springframework.jdbc.support.lob.DefaultLobHandler" lazy-init="true"/>-->
+	
+	<!-- 事务管理 -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<tx:advice id="txAdvice" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="save*" propagation="REQUIRED" />
+			<tx:method name="delete*" propagation="REQUIRED" />
+			<tx:method name="update*" propagation="REQUIRED" />
+			<tx:method name="get*" propagation="REQUIRED" />
+			<tx:method name="find*" propagation="REQUIRED" read-only="true"/>
+			<tx:method name="*" propagation="REQUIRED" />
+		</tx:attributes>
+	</tx:advice>
+	<!--
+		切面和切点的配置，有关信息参见spring的官方文档(2.3.面向切面编程(AOP)章节和以前发给同学们的spring五种配置方式word文档，具体含义和考试管理平台
+		中spring架构的配置一样)-->
+	
+	<aop:config>
+		<aop:pointcut id="allManagerMethod" expression="execution(* com.dcits.dao.daoImpl.*.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="allManagerMethod" />
+	</aop:config>	
+</beans>
